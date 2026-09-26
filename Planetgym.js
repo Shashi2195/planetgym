@@ -71,6 +71,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const menuToggle = document.querySelector('.menu-toggle');
     const navMenu = document.querySelector('nav ul');
     const body = document.body;
+    const dropdown = document.querySelector('.dropdown');
+    const dropdownToggle = document.querySelector('.dropdown-toggle');
+
+    // Desktop and mobile dropdown toggle
+    if (dropdown && dropdownToggle) {
+        dropdownToggle.addEventListener('click', function (e) {
+            e.preventDefault();
+            const isOpen = dropdown.classList.toggle('open');
+            dropdown.classList.toggle('active', isOpen);
+            dropdownToggle.setAttribute('aria-expanded', isOpen);
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (event) {
+            if (!dropdown.contains(event.target)) {
+                dropdown.classList.remove('open');
+                dropdown.classList.remove('active');
+                dropdownToggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
 
     if (menuToggle && navMenu) {
         menuToggle.addEventListener('click', function () {
@@ -86,11 +107,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Close menu when clicking on a link
         navMenu.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', function () {
+            link.addEventListener('click', function (e) {
+                // If it's dropdown toggle, don't close whole menu
+                if (link.classList.contains('dropdown-toggle')) {
+                    return;
+                }
+
                 navMenu.classList.remove('show');
                 menuToggle.classList.remove('active');
                 menuToggle.textContent = '☰';
                 body.style.overflow = '';
+
+                if (dropdown) {
+                    dropdown.classList.remove('open');
+                    dropdown.classList.remove('active');
+                    if (dropdownToggle) dropdownToggle.setAttribute('aria-expanded', 'false');
+                }
             });
         });
 
@@ -121,6 +153,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 menuToggle.classList.remove('active');
                 menuToggle.textContent = '☰';
                 body.style.overflow = '';
+                if (dropdown) {
+                    dropdown.classList.remove('open');
+                    dropdown.classList.remove('active');
+                }
             }
         });
     }
@@ -129,25 +165,31 @@ document.addEventListener('DOMContentLoaded', function () {
 // Smooth scrolling for navigation links
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
+        const href = this.getAttribute('href');
+        if (href && href !== '#' && href.length > 1) {
+            const target = document.querySelector(href);
+            if (target) {
+                e.preventDefault();
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
         }
     });
 });
 
 // Form submission handling
-document.querySelector('.contact-form').addEventListener('submit', function (e) {
-    e.preventDefault();
-    alert('Thank you for your message! We will get back to you soon.');
-    this.reset();
-});
+const contactForm = document.querySelector('.contact-form');
+if (contactForm) {
+    contactForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        alert('Thank you for your message! We will get back to you soon.');
+        this.reset();
+    });
+}
 
-// Add some animation on scroll (simple)
+// Add animation on scroll
 const observerOptions = {
     threshold: 0.1
 };
@@ -161,9 +203,59 @@ const observer = new IntersectionObserver((entries) => {
     });
 }, observerOptions);
 
-document.querySelectorAll('.service-item, .plan-item').forEach(item => {
+document.querySelectorAll('.service-item, .plan-item, .gallery-item, .video-card').forEach(item => {
     item.style.opacity = '0';
     item.style.transform = 'translateY(20px)';
     item.style.transition = 'opacity 0.6s, transform 0.6s';
     observer.observe(item);
+});
+
+// Photo Lightbox functionality
+document.addEventListener('DOMContentLoaded', function () {
+    const lightbox = document.getElementById('photoLightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const lightboxCaption = document.getElementById('lightboxCaption');
+    const lightboxInstaLink = document.getElementById('lightboxInstaLink');
+    const closeBtn = document.querySelector('.lightbox-close');
+    const overlay = document.querySelector('.lightbox-overlay');
+
+    if (lightbox && lightboxImg && lightboxCaption) {
+        document.querySelectorAll('.gallery-item').forEach(item => {
+            const openModal = () => {
+                const src = item.getAttribute('data-src') || item.querySelector('img').src;
+                const caption = item.getAttribute('data-caption') || item.querySelector('.gallery-caption').textContent;
+                const link = item.getAttribute('data-link') || 'https://www.instagram.com/planetgym2195/';
+
+                lightboxImg.src = src;
+                lightboxCaption.textContent = caption;
+                if (lightboxInstaLink) lightboxInstaLink.href = link;
+                lightbox.classList.add('show');
+                lightbox.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            };
+
+            item.addEventListener('click', openModal);
+            item.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openModal();
+                }
+            });
+        });
+
+        const closeModal = () => {
+            lightbox.classList.remove('show');
+            lightbox.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        };
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (overlay) overlay.addEventListener('click', closeModal);
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && lightbox.classList.contains('show')) {
+                closeModal();
+            }
+        });
+    }
 });
